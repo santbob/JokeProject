@@ -24,9 +24,6 @@ public class GCEAsyncTest extends AndroidTestCase {
             });
             task.execute();
             signal.await();
-//            String joke = task.get(20, TimeUnit.SECONDS);
-//            Log.d("GCEAsyncTest", joke);
-//            assertNull(joke);
         } catch (Exception e) {
             fail("Exception");
         }
