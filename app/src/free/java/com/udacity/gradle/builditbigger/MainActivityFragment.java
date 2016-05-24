@@ -1,26 +1,24 @@
 package com.udacity.gradle.builditbigger;
 
-import android.app.ProgressDialog;
-import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
+import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
-import com.udacity.gradle.builditbigger.androidjokelibrary.JokeActivity;
+import com.google.android.gms.ads.InterstitialAd;
 
 /**
- * A placeholder fragment containing a simple view.
+ * Created by santhosh on 24/05/16.
+ * Free
  */
-public class MainActivityFragment extends Fragment {
-    private ProgressDialog mProgressDialog;
+public class MainActivityFragment extends BaseFragment {
 
-    public MainActivityFragment() {
-    }
+    private InterstitialAd mInterstitialAd;
+    private String mJoke;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -36,6 +34,18 @@ public class MainActivityFragment extends Fragment {
                 .build();
         mAdView.loadAd(adRequest);
 
+        mInterstitialAd = new InterstitialAd(getActivity());
+        mInterstitialAd.setAdUnitId("ca-app-pub-3940256099942544/1033173712");
+        requestNewInterstitial();
+        mInterstitialAd.setAdListener(new AdListener() {
+            @Override
+            public void onAdClosed() {
+                requestNewInterstitial();
+                launchDispalyJokeIntent(mJoke);
+            }
+        });
+
+
         Button tellAJoke = (Button) root.findViewById(R.id.tell_a_joke);
         tellAJoke.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -44,7 +54,12 @@ public class MainActivityFragment extends Fragment {
                 GCEAsyncTask asyncTask = new GCEAsyncTask(new GCEAsyncTask.ResultListener() {
                     @Override
                     public void onResult(String joke) {
-                        launchDispalyJokeIntent(joke);
+                        if (mInterstitialAd.isLoaded()) {
+                            mJoke = joke;
+                            mInterstitialAd.show();
+                        } else {
+                            launchDispalyJokeIntent(joke);
+                        }
                     }
                 });
                 asyncTask.execute();
@@ -54,35 +69,12 @@ public class MainActivityFragment extends Fragment {
         return root;
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        dismissProgressDialog();
+    private void requestNewInterstitial() {
+        AdRequest adRequest = new AdRequest.Builder()
+                .addTestDevice(AdRequest.DEVICE_ID_EMULATOR)
+                .build();
+
+        mInterstitialAd.loadAd(adRequest);
     }
 
-    private void launchDispalyJokeIntent(String joke) {
-        Intent intent = new Intent(getActivity(), JokeActivity.class);
-        intent.putExtra(JokeActivity.JOKE_KEY, joke);
-        startActivity(intent);
-    }
-
-    public void showProgressDialog() {
-        if (mProgressDialog == null) {
-            mProgressDialog = ProgressDialog.show(getActivity(), getString(R.string.please_wait), getString(R.string.loading));
-            mProgressDialog.setCancelable(false);
-        } else {
-            mProgressDialog.setTitle(R.string.please_wait);
-            mProgressDialog.setMessage(getResources().getString(R.string.loading));
-            mProgressDialog.show();
-        }
-    }
-
-    private void dismissProgressDialog() {
-        if (mProgressDialog != null && !getActivity().isDestroyed()) {
-            if (mProgressDialog.isShowing()) {
-                mProgressDialog.dismiss();
-            }
-            mProgressDialog = null;
-        }
-    }
 }

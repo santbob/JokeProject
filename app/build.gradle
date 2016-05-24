@@ -27,20 +27,32 @@ android {
     productFlavors {
         free {
             applicationId 'com.udactiy.gradle.builditbigger.free'
+            versionName "1.0-free"
         }
         paid {
             applicationId 'com.udactiy.gradle.builditbigger.paid'
+            versionName "1.0-paid"
         }
     }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    // Added for AdMob
-    compile project(":androidjokelibrary")
-    compile project(":jokelibrary")
+    //support library dependency
     compile 'com.android.support:appcompat-v7:23.0.0'
-    compile 'com.google.android.gms:play-services:9.0.0'
+
+    //dependency for Android Library which brings the activity that displays the joke
+    compile project(":androidjokelibrary")
+
+    //dependency for GCM
+    compile 'com.google.android.gms:play-services-gcm:9.0.0'
+
+    //dependency for local GCM project which acts as Restful service.
     compile project(path: ':backend', configuration: 'android-endpoints')
+
+    //dependency for Google Ad Mobs for showing Ads for free version. freeCompile makes sure its a dependency only for Free Flavor of the app.
+    freeCompile 'com.google.android.gms:play-services-ads:9.0.0'
+
+    //dependency for Junits and Connected Tests
     testCompile 'junit:junit:4.12'
 }
