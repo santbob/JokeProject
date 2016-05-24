@@ -1,8 +1,7 @@
 package com.udacity.gradle.builditbigger;
 
-import android.content.Context;
+import android.app.ProgressDialog;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -12,19 +11,13 @@ import android.widget.Button;
 
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
-import com.google.api.client.extensions.android.http.AndroidHttp;
-import com.google.api.client.extensions.android.json.AndroidJsonFactory;
-import com.google.api.client.googleapis.services.AbstractGoogleClientRequest;
-import com.google.api.client.googleapis.services.GoogleClientRequestInitializer;
 import com.udacity.gradle.builditbigger.androidjokelibrary.JokeActivity;
-import com.udacity.gradle.builditbigger.backend.myApi.MyApi;
-
-import java.io.IOException;
 
 /**
  * A placeholder fragment containing a simple view.
  */
 public class MainActivityFragment extends Fragment {
+    private ProgressDialog mProgressDialog;
 
     public MainActivityFragment() {
     }
@@ -47,58 +40,49 @@ public class MainActivityFragment extends Fragment {
         tellAJoke.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //launchDispalyJokeIntent();
-                EndpointsAsyncTask asyncTask = new EndpointsAsyncTask();
-                asyncTask.execute(getActivity());
+                showProgressDialog();
+                GCEAsyncTask asyncTask = new GCEAsyncTask(new GCEAsyncTask.ResultListener() {
+                    @Override
+                    public void onResult(String joke) {
+                        launchDispalyJokeIntent(joke);
+                    }
+                });
+                asyncTask.execute();
             }
         });
 
         return root;
     }
 
-    private void launchDispalyJokeIntent() {
+    @Override
+    public void onResume() {
+        super.onResume();
+        dismissProgressDialog();
+    }
+
+    private void launchDispalyJokeIntent(String joke) {
         Intent intent = new Intent(getActivity(), JokeActivity.class);
-        JokeLibrary jl = new JokeLibrary();
-        intent.putExtra(JokeActivity.JOKE_KEY, jl.getJoke());
+        intent.putExtra(JokeActivity.JOKE_KEY, joke);
         startActivity(intent);
     }
 
-    class EndpointsAsyncTask extends AsyncTask<Context, Void, String> {
-        private MyApi myApiService = null;
-        private Context context;
-
-        @Override
-        protected String doInBackground(Context... params) {
-            if (myApiService == null) {  // Only do this once
-                MyApi.Builder builder = new MyApi.Builder(AndroidHttp.newCompatibleTransport(),
-                        new AndroidJsonFactory(), null)
-                        // options for running against local devappserver
-                        // - 10.0.2.2 is localhost's IP address in Android emulator
-                        // - turn off compression when running against local devappserver
-                        .setRootUrl("http://10.0.2.2:8080/_ah/api/")
-                        .setGoogleClientRequestInitializer(new GoogleClientRequestInitializer() {
-                            @Override
-                            public void initialize(AbstractGoogleClientRequest<?> abstractGoogleClientRequest) throws IOException {
-                                abstractGoogleClientRequest.setDisableGZipContent(true);
-                            }
-                        });
-                // end options for devappserver
-
-                myApiService = builder.build();
-            }
-
-            context = params[0];
-
-            try {
-                return myApiService.getJoke().execute().getData();
-            } catch (IOException e) {
-                return e.getMessage();
-            }
+    public void showProgressDialog() {
+        if (mProgressDialog == null) {
+            mProgressDialog = ProgressDialog.show(getActivity(), getString(R.string.please_wait), getString(R.string.loading));
+            mProgressDialog.setCancelable(false);
+        } else {
+            mProgressDialog.setTitle(R.string.please_wait);
+            mProgressDialog.setMessage(getResources().getString(R.string.loading));
+            mProgressDialog.show();
         }
+    }
 
-        @Override
-        protected void onPostExecute(String result) {
-            launchDispalyJokeIntent();
+    private void dismissProgressDialog() {
+        if (mProgressDialog != null && !getActivity().isDestroyed()) {
+            if (mProgressDialog.isShowing()) {
+                mProgressDialog.dismiss();
+            }
+            mProgressDialog = null;
         }
     }
 }
